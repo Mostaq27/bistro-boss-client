@@ -7,45 +7,59 @@ import { useForm } from 'react-hook-form';
 import { Helmet } from 'react-helmet-async';
 
 import Swal from 'sweetalert2';
+import useAxiosPublic from '../../../Hooks/useAxiosPublic';
+import SocialLogin from '../Shared/SocialLogin/SocialLogin';
 
 
 
 
 const SignUp = () => {
+    const axiosPublic = useAxiosPublic();
     const { register, getValues, handleSubmit, reset, formState: { errors } } = useForm();
-    const {createUser, upodateUserProfole} = useContext(AuthContext);
+    const { createUser, upodateUserProfole } = useContext(AuthContext);
     const navigate = useNavigate();
-    
-    
+
+
     const onSubmit = (data) => {
         console.log(data)
         createUser(data.email, data.password)
-        .then(result =>{
-            const loggedUser = result.user;
-            console.log(loggedUser);
-            upodateUserProfole(data.name, data.photoURL)
-            .then(()=> {
-                console.log('user profileinfo updated')
-                reset();
-                Swal.fire({
-                    position: "top",
-                    icon: "success",
-                    title: "Create user Successfully",
-                    showConfirmButton: false,
-                    timer: 1500
-                  });
-                navigate('/');
+            .then(result => {
+                const loggedUser = result.user;
+                console.log(loggedUser);
+                upodateUserProfole(data.name, data.photoURL)
+                    .then(() => {
+                        // create user entry in the database
+                        const userInfo = {
+                            name: data.name,
+                            email: data.email
+                        }
+                        axiosPublic.post('/users', userInfo)
+                            .then(res => {
+                                if (res.data.insertedId) {
+                                    console.log('user added to the database')
+                                    reset();
+                                    
+                                    Swal.fire({
+                                        position: 'top',
+                                        icon: 'success',
+                                        title: 'User created successfully.',
+                                        showConfirmButton: false,
+                                        timer: 1500
+                                    });
+                                    navigate('/');
+                                }
+                            })
+                    })
+                    .catch(error => console.log(error))
             })
-            .catch(error => console.log(error))
-        })
     };
 
 
 
 
-    
 
-  
+
+
 
     // const handleLogin = e => {
     //     e.preventDefault();
@@ -61,10 +75,10 @@ const SignUp = () => {
     //         })
     // }
 
-    
+
     return (
         <>
-        {/* <Toaster></Toaster> */}
+            {/* <Toaster></Toaster> */}
             <Helmet>
                 <title>Bistro Boss | Sign Up</title>
             </Helmet>
@@ -80,7 +94,7 @@ const SignUp = () => {
                                 <label className="label">
                                     <span className="label-text text-black">Photo URL</span>
                                 </label>
-                                <input type="text" {...register("photoURL", { required: true })}  placeholder="Photo URL" className="input input-bordered" />
+                                <input type="text" {...register("photoURL", { required: true })} placeholder="Photo URL" className="input input-bordered" />
                                 {errors.photoURL && <span className="text-red-600">Photo URL field is required</span>}
                             </div>
                             <div className="form-control">
@@ -115,10 +129,11 @@ const SignUp = () => {
                                 <button onClick={handleValidateCaptcha} className='btn btn-outline btn-xs mt-2'>Validate</button>
                             </div> */}
                             <div className="form-control mt-6">
-                                <input type="submit"  className="btn btn-primary text-white font-semibold" value="Sign Up" />
+                                <input type="submit" className="btn btn-primary text-white font-semibold" value="Sign Up" />
                             </div>
                             <div className="form-control">
                                 <p className='text-[#e98d4c]'><small>Already registered? <Link to='/login'>  Go to log in</Link></small></p>
+                                <SocialLogin></SocialLogin>
                             </div>
                         </form>
                     </div>
